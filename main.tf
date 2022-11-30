@@ -93,9 +93,9 @@ resource "aws_lb" "lb" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-lb"
-    )
+    tomap({
+      "Name" = "${var.application}-lb"
+    })
   )
 }
 
@@ -565,9 +565,9 @@ resource "aws_security_group" "master_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-master-sg"
+    })
   )
 }
 
