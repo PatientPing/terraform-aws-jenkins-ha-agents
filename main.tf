@@ -796,9 +796,9 @@ resource "aws_security_group" "master_storage_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-storage-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-master-storage-sg"
+    })
   )
 }
 
