@@ -93,9 +93,9 @@ resource "aws_lb" "lb" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-lb"
-    )
+    tomap({
+      "Name" = "${var.application}-lb"
+    })
   )
 }
 
@@ -127,9 +127,9 @@ resource "aws_security_group" "lb_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-lb-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-lb-sg"
+    })
   )
 }
 
@@ -207,7 +207,7 @@ resource "aws_cloudwatch_metric_alarm" "agent_cpu_alarm" {
 
 resource "aws_autoscaling_group" "agent_asg" {
   depends_on = [
-    "aws_autoscaling_group.master_asg",
+    aws_autoscaling_group.master_asg,
   ]
 
   max_size = var.agent_max
@@ -283,9 +283,9 @@ resource "aws_security_group" "agent_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-agent-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-agent-sg"
+    })
   )
 }
 
@@ -316,9 +316,9 @@ EOF
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-agent-iam-role",
-    )
+    tomap({
+      "Name" = "${var.application}-agent-iam-role",
+    })
   )
 }
 
@@ -389,9 +389,9 @@ resource "aws_cloudwatch_log_group" "agent_logs" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-agent-logs"
-    )
+    tomap({
+      "Name" = "${var.application}-agent-logs"
+    })
   )
 }
 
@@ -467,8 +467,8 @@ resource "aws_autoscaling_policy" "agent_scale_down_policy" {
 
 resource "aws_autoscaling_group" "master_asg" {
   depends_on = [
-    "aws_efs_mount_target.mount_target_a",
-    "aws_efs_mount_target.mount_target_b",
+    aws_efs_mount_target.mount_target_a,
+    aws_efs_mount_target.mount_target_b,
   ]
 
   max_size = 1
@@ -565,9 +565,9 @@ resource "aws_security_group" "master_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-master-sg"
+    })
   )
 }
 
@@ -598,9 +598,9 @@ EOF
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-iam-role"
-    )
+    tomap({
+      "Name" = "${var.application}-master-iam-role"
+    })
   )
 }
 
@@ -666,9 +666,9 @@ resource "aws_cloudwatch_log_group" "master_logs" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-logs"
-    )
+    tomap({
+      "Name" = "${var.application}-master-logs"
+      })
   )
 }
 
@@ -745,9 +745,9 @@ resource "aws_efs_file_system" "master_efs" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-efs"
-    )
+    tomap({
+      "Name" = "${var.application}-master-efs"
+    })
   )
 }
 
@@ -796,9 +796,9 @@ resource "aws_security_group" "master_storage_sg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-storage-sg"
-    )
+    tomap({
+      "Name" = "${var.application}-master-storage-sg"
+    })
   )
 }
 
@@ -821,9 +821,9 @@ resource "aws_lb_target_group" "master_tg" {
 
   tags = merge(
     var.tags,
-    map(
-      "Name", "${var.application}-master-tg"
-    )
+    tomap({
+      "Name" = "${var.application}-master-tg"
+    })
   )
 }
 
