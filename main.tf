@@ -467,8 +467,8 @@ resource "aws_autoscaling_policy" "agent_scale_down_policy" {
 
 resource "aws_autoscaling_group" "master_asg" {
   depends_on = [
-    "aws_efs_mount_target.mount_target_a",
-    "aws_efs_mount_target.mount_target_b",
+    aws_efs_mount_target.mount_target_a,
+    aws_efs_mount_target.mount_target_b,
   ]
 
   max_size = 1
