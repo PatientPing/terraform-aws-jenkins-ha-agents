@@ -207,7 +207,7 @@ resource "aws_cloudwatch_metric_alarm" "agent_cpu_alarm" {
 
 resource "aws_autoscaling_group" "agent_asg" {
   depends_on = [
-    "aws_autoscaling_group.master_asg",
+    aws_autoscaling_group.master_asg,
   ]
 
   max_size = var.agent_max
