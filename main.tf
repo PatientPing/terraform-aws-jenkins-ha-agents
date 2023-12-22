@@ -83,12 +83,12 @@ data "aws_iam_policy" "amazon_ec2_role_for_ssm" {
 
 resource "aws_lb" "lb" {
   idle_timeout               = 60
-  internal                   = false
+  internal                   = true
   name                       = "${var.application}-lb"
   security_groups            = [
     aws_security_group.lb_sg.id]
   subnets                    = [
-    data.aws_subnet.public_subnet_az1.id, data.aws_subnet.public_subnet_az2.id]
+    data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
   enable_deletion_protection = false
 
   tags = merge(
@@ -104,11 +104,20 @@ resource "aws_security_group" "lb_sg" {
   description = "${var.application}-lb-sg"
   vpc_id      = data.aws_vpc.vpc.id
 
+  /*
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = var.public_cidr_ingress
+  }
+  */
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
   }
 
   ingress {
@@ -484,7 +493,9 @@ resource "aws_autoscaling_group" "master_asg" {
     data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
 
   target_group_arns = [
-    aws_lb_target_group.master_tg.arn]
+    aws_lb_target_group.master_tg.arn,
+    aws_lb_target_group.master_public_tg.arn
+  ]
 
   tag {
     key                 = "Name"
@@ -506,7 +517,8 @@ resource "aws_launch_configuration" "master_lc" {
 
   iam_instance_profile = aws_iam_instance_profile.master_ip.name
   security_groups      = [
-    aws_security_group.master_sg.id]
+    aws_security_group.master_sg.id
+  ]
 
   user_data = data.template_cloudinit_config.master_init.rendered
 
@@ -534,7 +546,10 @@ resource "aws_security_group" "master_sg" {
     to_port         = 8080
     protocol        = "tcp"
     security_groups = [
-      aws_security_group.lb_sg.id, aws_security_group.agent_sg.id]
+      aws_security_group.lb_sg.id,
+      aws_security_group.lb_sg_public.id,
+      aws_security_group.agent_sg.id,
+    ]
     self            = false
   }
 
