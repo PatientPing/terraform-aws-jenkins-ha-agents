@@ -145,7 +145,7 @@ variable "ssm_parameter" {
 
 variable "swarm_version" {
   description = "The version of swarm plugin to install on the agents. Update by updating this value."
-  default     = "3.42"
+  default     = "3.17"
 }
 
 variable "tags" {
@@ -163,10 +163,11 @@ variable "agent_volume_size" {
 
 variable "efs_provisioned_throughput_in_mibps" {
   description = "If specified, sets EFS to provisioned mode and sets MiB/Sec throughput provisioned rate"
-  default = null
+  default     = null
 }
 
 variable "ssm_session_manage_kms_key_arn" {
   description = "The KMS key to use for SSM session manager."
-  type = string
+  type        = string
 }
+
