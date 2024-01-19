@@ -28,7 +28,8 @@ resource "aws_lb_listener" "master_lb_public_listener" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = data.aws_acm_certificate.certificate.arn
+  # certificate_arn   = data.aws_acm_certificate.certificate.arn
+  certificate_arn = var.ssl_certificate
 
   default_action {
     type = "fixed-response"
@@ -56,22 +57,16 @@ resource "aws_lb_listener_rule" "github_webhook_public" {
       values = ["/github-webhook/*"]
     }
   }
-
-  condition {
-    host_header {
-      values = [aws_route53_record.r53_record_public.fqdn]
-    }
-  }
 }
 
 resource "aws_lb" "lb_public" {
-  idle_timeout               = 60
-  internal                   = false
-  name                       = "${var.application}-public-lb"
-  security_groups            = [
-    aws_security_group.lb_sg_public.id]
-  subnets                    = [
-    data.aws_subnet.public_subnet_az1.id, data.aws_subnet.public_subnet_az2.id]
+  idle_timeout = 60
+  internal     = false
+  name         = "${var.application}-public-lb"
+  security_groups = [
+  aws_security_group.lb_sg_public.id]
+  subnets = [
+  data.aws_subnet.public_subnet_az1.id, data.aws_subnet.public_subnet_az2.id]
   enable_deletion_protection = false
 
   tags = merge(
@@ -134,3 +129,4 @@ resource "aws_security_group" "lb_sg_public" {
     })
   )
 }
+

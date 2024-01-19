@@ -4,21 +4,21 @@ data "aws_security_group" "bastion_sg" {
   vpc_id = data.aws_vpc.vpc.id
 
   filter {
-    name   = "group-name"
+    name = "group-name"
     values = [
-      var.bastion_sg_name]
+    var.bastion_sg_name]
   }
 }
 
 data "aws_ami" "amzn2_ami" {
   most_recent = true
-  owners      = [
-    var.ami_owner]
+  owners = [
+  var.ami_owner]
 
   filter {
-    name   = "name"
+    name = "name"
     values = [
-      var.ami_name]
+    var.ami_name]
   }
 }
 
@@ -32,9 +32,9 @@ data "aws_subnet" "private_subnet_az1" {
   vpc_id = data.aws_vpc.vpc.id
 
   filter {
-    name   = "tag:Name"
+    name = "tag:Name"
     values = [
-      var.private_subnet_name_az1]
+    var.private_subnet_name_az1]
   }
 }
 
@@ -42,9 +42,9 @@ data "aws_subnet" "private_subnet_az2" {
   vpc_id = data.aws_vpc.vpc.id
 
   filter {
-    name   = "tag:Name"
+    name = "tag:Name"
     values = [
-      var.private_subnet_name_az2]
+    var.private_subnet_name_az2]
   }
 }
 
@@ -52,9 +52,9 @@ data "aws_subnet" "public_subnet_az1" {
   vpc_id = data.aws_vpc.vpc.id
 
   filter {
-    name   = "tag:Name"
+    name = "tag:Name"
     values = [
-      var.public_subnet_name_az1]
+    var.public_subnet_name_az1]
   }
 }
 
@@ -62,16 +62,17 @@ data "aws_subnet" "public_subnet_az2" {
   vpc_id = data.aws_vpc.vpc.id
 
   filter {
-    name   = "tag:Name"
+    name = "tag:Name"
     values = [
-      var.public_subnet_name_az2]
+    var.public_subnet_name_az2]
   }
 }
-
+/*
 data "aws_acm_certificate" "certificate" {
   domain   = var.ssl_certificate
   statuses = ["ISSUED"]
 }
+*/
 
 data "aws_route53_zone" "r53_zone" {
   name = var.domain_name
@@ -82,13 +83,13 @@ data "aws_iam_policy" "amazon_ec2_role_for_ssm" {
 }
 
 resource "aws_lb" "lb" {
-  idle_timeout               = 60
-  internal                   = true
-  name                       = "${var.application}-lb"
-  security_groups            = [
-    aws_security_group.lb_sg.id]
-  subnets                    = [
-    data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+  idle_timeout = 60
+  internal     = true
+  name         = "${var.application}-lb"
+  security_groups = [
+  aws_security_group.lb_sg.id]
+  subnets = [
+  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
   enable_deletion_protection = false
 
   tags = merge(
@@ -170,8 +171,8 @@ resource "aws_cloudwatch_metric_alarm" "available_executors_low" {
   }
 
   actions_enabled = true
-  alarm_actions   = [
-    aws_autoscaling_policy.agent_scale_up_policy.arn]
+  alarm_actions = [
+  aws_autoscaling_policy.agent_scale_up_policy.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "idle_executors_high" {
@@ -190,8 +191,8 @@ resource "aws_cloudwatch_metric_alarm" "idle_executors_high" {
   }
 
   actions_enabled = true
-  alarm_actions   = [
-    aws_autoscaling_policy.agent_scale_down_policy.arn]
+  alarm_actions = [
+  aws_autoscaling_policy.agent_scale_down_policy.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "agent_cpu_alarm" {
@@ -210,8 +211,8 @@ resource "aws_cloudwatch_metric_alarm" "agent_cpu_alarm" {
   }
 
   actions_enabled = true
-  alarm_actions   = [
-    aws_autoscaling_policy.agent_scale_up_policy.arn]
+  alarm_actions = [
+  aws_autoscaling_policy.agent_scale_up_policy.arn]
 }
 
 resource "aws_autoscaling_group" "agent_asg" {
@@ -229,7 +230,7 @@ resource "aws_autoscaling_group" "agent_asg" {
   name                 = aws_launch_configuration.agent_lc.name
 
   vpc_zone_identifier = [
-    data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
 
   tag {
     key                 = "Name"
@@ -250,8 +251,8 @@ resource "aws_launch_configuration" "agent_lc" {
   instance_type = var.instance_type
 
   iam_instance_profile = aws_iam_instance_profile.agent_ip.name
-  security_groups      = [
-    aws_security_group.agent_sg.id]
+  security_groups = [
+  aws_security_group.agent_sg.id]
 
   user_data = data.template_cloudinit_config.agent_init.rendered
 
@@ -275,12 +276,12 @@ resource "aws_security_group" "agent_sg" {
   vpc_id      = data.aws_vpc.vpc.id
 
   ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
     security_groups = [
-      data.aws_security_group.bastion_sg.id]
-    self            = false
+    data.aws_security_group.bastion_sg.id]
+    self = false
   }
 
   egress {
@@ -341,6 +342,15 @@ resource "aws_iam_role_policy" "agent_inline_policy" {
   "Statement": [
     {
       "Action": [
+        "kms:Encrypt*",
+        "kms:Decrypt*",
+        "kms:ReEncrypt"
+      ],
+      "Effect": "Allow",
+      "Resource": "${var.ssm_session_manage_kms_key_arn}"
+    },
+    {
+      "Action": [
         "ec2:DescribeInstances",
         "autoscaling:DescribeAutoScalingGroups"
       ],
@@ -391,6 +401,11 @@ EOF
 resource "aws_iam_role_policy_attachment" "agent_policy_attachment" {
   role       = aws_iam_role.agent_iam_role.name
   policy_arn = data.aws_iam_policy.amazon_ec2_role_for_ssm.arn
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_managed_instance_policy_attachment" {
+  role       = aws_iam_role.agent_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_cloudwatch_log_group" "agent_logs" {
@@ -490,7 +505,7 @@ resource "aws_autoscaling_group" "master_asg" {
   name                 = aws_launch_configuration.master_lc.name
 
   vpc_zone_identifier = [
-    data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
 
   target_group_arns = [
     aws_lb_target_group.master_tg.arn,
@@ -516,7 +531,7 @@ resource "aws_launch_configuration" "master_lc" {
   instance_type = var.instance_type
 
   iam_instance_profile = aws_iam_instance_profile.master_ip.name
-  security_groups      = [
+  security_groups = [
     aws_security_group.master_sg.id
   ]
 
@@ -542,33 +557,34 @@ resource "aws_security_group" "master_sg" {
   vpc_id      = data.aws_vpc.vpc.id
 
   ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
+    from_port = 8080
+    to_port   = 8080
+    protocol  = "tcp"
     security_groups = [
       aws_security_group.lb_sg.id,
       aws_security_group.lb_sg_public.id,
       aws_security_group.agent_sg.id,
     ]
-    self            = false
+    self = false
   }
 
   ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
     security_groups = [
-      data.aws_security_group.bastion_sg.id]
-    self            = false
+    data.aws_security_group.bastion_sg.id]
+    self = false
   }
 
   ingress {
-    from_port       = 49817
-    to_port         = 49817
-    protocol        = "tcp"
+    from_port = 49817
+    to_port   = 49817
+    protocol  = "tcp"
     security_groups = [
-      aws_security_group.agent_sg.id]
-    self            = false
+      aws_security_group.agent_sg.id
+    ]
+    self = false
   }
 
   egress {
@@ -629,6 +645,15 @@ resource "aws_iam_role_policy" "master_inline_policy" {
   "Statement": [
     {
       "Action": [
+        "kms:Encrypt*",
+        "kms:Decrypt*",
+        "kms:ReEncrypt"
+      ],
+      "Effect": "Allow",
+      "Resource": "${var.ssm_session_manage_kms_key_arn}"
+    },
+    {
+      "Action": [
         "cloudwatch:PutMetricData"
       ],
       "Effect": "Allow",
@@ -683,7 +708,7 @@ resource "aws_cloudwatch_log_group" "master_logs" {
     var.tags,
     tomap({
       "Name" = "${var.application}-master-logs"
-      })
+    })
   )
 }
 
@@ -767,17 +792,17 @@ resource "aws_efs_file_system" "master_efs" {
 }
 
 resource "aws_efs_mount_target" "mount_target_a" {
-  file_system_id  = aws_efs_file_system.master_efs.id
-  subnet_id       = data.aws_subnet.private_subnet_az1.id
+  file_system_id = aws_efs_file_system.master_efs.id
+  subnet_id      = data.aws_subnet.private_subnet_az1.id
   security_groups = [
-    aws_security_group.master_storage_sg.id]
+  aws_security_group.master_storage_sg.id]
 }
 
 resource "aws_efs_mount_target" "mount_target_b" {
-  file_system_id  = aws_efs_file_system.master_efs.id
-  subnet_id       = data.aws_subnet.private_subnet_az2.id
+  file_system_id = aws_efs_file_system.master_efs.id
+  subnet_id      = data.aws_subnet.private_subnet_az2.id
   security_groups = [
-    aws_security_group.master_storage_sg.id]
+  aws_security_group.master_storage_sg.id]
 }
 
 resource "aws_efs_backup_policy" "policy" {
@@ -794,12 +819,12 @@ resource "aws_security_group" "master_storage_sg" {
   vpc_id      = data.aws_vpc.vpc.id
 
   ingress {
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
+    from_port = 2049
+    to_port   = 2049
+    protocol  = "tcp"
     security_groups = [
-      aws_security_group.master_sg.id]
-    self            = false
+    aws_security_group.master_sg.id]
+    self = false
   }
 
   egress {
@@ -847,7 +872,8 @@ resource "aws_lb_listener" "master_lb_listener" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = data.aws_acm_certificate.certificate.arn
+  # certificate_arn   = data.aws_acm_certificate.certificate.arn
+  certificate_arn = var.ssl_certificate
 
   default_action {
     type             = "forward"
@@ -864,7 +890,7 @@ resource "aws_ssm_parameter" "admin_password" {
 }
 
 resource "random_string" "admin_password" {
-  length = 16
+  length  = 16
   special = true
   keepers = {
     jenkins_version = var.jenkins_version
