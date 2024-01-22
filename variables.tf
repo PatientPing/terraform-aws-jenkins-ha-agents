@@ -163,5 +163,11 @@ variable "agent_volume_size" {
 
 variable "efs_provisioned_throughput_in_mibps" {
   description = "If specified, sets EFS to provisioned mode and sets MiB/Sec throughput provisioned rate"
-  default = null
+  default     = null
 }
+
+variable "ssm_session_manage_kms_key_arn" {
+  description = "The KMS key to use for SSM session manager."
+  type        = string
+}
+
