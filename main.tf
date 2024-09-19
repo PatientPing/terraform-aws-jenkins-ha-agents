@@ -772,7 +772,7 @@ data "template_cloudinit_config" "master_init" {
   part {
     content_type = "text/cloud-config"
     content      = templatefile("${path.module}/init/master-runcmd.cfg", {
-      api_ssm_parameter = "${var.ssm_parameter}${var.api_ssm_parameter}"
+      admin_password    = random_string.admin_password.result
       aws_region        = var.region
       jenkins_version   = random_string.admin_password.keepers.jenkins_version
       master_storage    = aws_efs_file_system.master_efs.id
