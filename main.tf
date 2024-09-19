@@ -226,9 +226,7 @@ resource "aws_autoscaling_group" "agent_asg" {
   health_check_grace_period = 300
   health_check_type         = "EC2"
 
-  # launch_configuration = aws_launch_configuration.agent_lc.name^
-  # name                 = aws_launch_configuration.agent_lc.name
-  name                  = aws_launch_template.agent_lt.name
+  name = aws_launch_template.agent_lt.name
 
   launch_template {
     id      = aws_launch_template.agent_lt.id
@@ -247,8 +245,8 @@ resource "aws_autoscaling_group" "agent_asg" {
   }
 
   tag {
-    key                 = "Launch Configuration"
-    value               = aws_launch_configuration.agent_lc.name
+    key                 = "Launch Template"
+    value               = aws_launch_template.agent_lt.name
     propagate_at_launch = true
   }
 }
@@ -296,33 +294,6 @@ resource "aws_launch_template" "agent_lt" {
     create_before_destroy = true
   }
 }
-
-/*
-resource "aws_launch_configuration" "agent_lc" {
-  name_prefix   = "${var.application}-agent-"
-  image_id      = data.aws_ami.amzn2_ami.id
-  instance_type = var.instance_type
-
-  iam_instance_profile = aws_iam_instance_profile.agent_ip.name
-  security_groups = [
-  aws_security_group.agent_sg.id]
-
-  user_data = data.template_cloudinit_config.agent_init.rendered
-
-  enable_monitoring = true
-  ebs_optimized     = false
-
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = var.agent_volume_size
-    delete_on_termination = true
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-*/
 
 resource "aws_security_group" "agent_sg" {
   name        = "${var.application}-agent-sg"
@@ -554,11 +525,8 @@ resource "aws_autoscaling_group" "master_asg" {
 
   health_check_grace_period = 900
   health_check_type         = "ELB"
-
-  # launch_configuration = aws_launch_configuration.master_lc.name
-  # name                 = aws_launch_configuration.master_lc.name
   
-  name                 = aws_launch_template.master_lt.name
+  name = aws_launch_template.master_lt.name
 
   launch_template {
     id      = aws_launch_template.master_lt.id
@@ -566,7 +534,9 @@ resource "aws_autoscaling_group" "master_asg" {
   }
 
   vpc_zone_identifier = [
-  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az2.id,
+  ]
 
   target_group_arns = [
     aws_lb_target_group.master_tg.arn,
@@ -581,7 +551,7 @@ resource "aws_autoscaling_group" "master_asg" {
 
   tag {
     key                 = "Launch Configuration"
-    value               = aws_launch_configuration.master_lc.name
+    value               = aws_launch_template.master_lt.name
     propagate_at_launch = true
   }
 }
@@ -629,34 +599,6 @@ resource "aws_launch_template" "master_lt" {
     create_before_destroy = true
   }
 }
-
-/*
-resource "aws_launch_configuration" "master_lc" {
-  name_prefix   = "${var.application}-master-"
-  image_id      = data.aws_ami.amzn2_ami.id
-  instance_type = var.instance_type
-
-  iam_instance_profile = aws_iam_instance_profile.master_ip.name
-  security_groups = [
-    aws_security_group.master_sg.id
-  ]
-
-  user_data = data.template_cloudinit_config.master_init.rendered
-
-  enable_monitoring = true
-  ebs_optimized     = false
-
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 25
-    delete_on_termination = true
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-*/
 
 resource "aws_security_group" "master_sg" {
   name        = "${var.application}-master-sg"
