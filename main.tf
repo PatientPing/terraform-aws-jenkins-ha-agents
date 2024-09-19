@@ -290,7 +290,7 @@ resource "aws_launch_template" "agent_lt" {
     )
   }
 
-   lifecycle {
+  lifecycle {
     create_before_destroy = true
   }
 }
