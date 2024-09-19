@@ -1,3 +1,4 @@
+/*
 provider "aws" {
   region = "${var.region}"
 }
@@ -26,10 +27,10 @@ module "jenkins_ha_agents" {
 
   auto_update_plugins_cron = "${var.auto_update_plugins_cron}"
 
-  custom_plugins              = "${data.template_file.custom_plugins.rendered}"
-  extra_agent_userdata        = "${data.template_file.extra_agent_userdata.rendered}"
+  custom_plugins              = templatefile("${path.module}/init/custom_plugins.cfg", {})
+  extra_agent_userdata        = templatefile("${path.module}/init/extra-agent-userdata.cfg", {})
   extra_agent_userdata_merge  = "list(append)+dict(recurse_array)+str()"
-  extra_master_userdata       = "${data.template_file.extra_master_userdata.rendered}"
+  extra_master_userdata       = templatefile("${path.module}/init/extra-master-userdata.cfg", {})
   extra_master_userdata_merge = "list(append)+dict(recurse_array)+str()"
 
   executors              = "${var.executors}"
@@ -55,23 +56,4 @@ module "jenkins_ha_agents" {
   tags          = "${local.tags}"
   vpc_name      = "${var.vpc_name}"
 }
-
-data "template_file" "extra_agent_userdata" {
-  template = "${file("init/extra-agent-userdata.cfg")}"
-
-  vars {
-    foo = "bar"
-  }
-}
-
-data "template_file" "extra_master_userdata" {
-  template = "${file("init/extra-master-userdata.cfg")}"
-
-  vars {
-    foo = "bar"
-  }
-}
-
-data "template_file" "custom_plugins" {
-  template = "${file("init/custom_plugins.cfg")}"
-}
+*/
