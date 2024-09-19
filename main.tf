@@ -226,11 +226,19 @@ resource "aws_autoscaling_group" "agent_asg" {
   health_check_grace_period = 300
   health_check_type         = "EC2"
 
-  launch_configuration = aws_launch_configuration.agent_lc.name
-  name                 = aws_launch_configuration.agent_lc.name
+  # launch_configuration = aws_launch_configuration.agent_lc.name^
+  # name                 = aws_launch_configuration.agent_lc.name
+  name                  = aws_launch_template.agent_lt.name
+
+  launch_template {
+    id      = aws_launch_template.agent_lt.id
+    version = "$Latest"
+  }
 
   vpc_zone_identifier = [
-  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az2.id,
+  ]
 
   tag {
     key                 = "Name"
@@ -245,6 +253,51 @@ resource "aws_autoscaling_group" "agent_asg" {
   }
 }
 
+resource "aws_launch_template" "agent_lt" {
+  name_prefix   = "${var.application}-agent-"
+  image_id      = data.aws_ami.amzn2_ami.id
+  instance_type = var.instance_type
+  user_data     = data.template_cloudinit_config.agent_init.rendered
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.agent_ip.name
+  }
+
+  network_interfaces {
+    security_groups = [aws_security_group.agent_sg.id]
+  }
+
+  monitoring {
+    enabled = true
+  }
+
+  ebs_optimized = true
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = var.agent_volume_size
+      volume_type           = "gp2"
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      var.tags,
+      tomap({
+        "Name" = "${var.application}-agent"
+      })
+    )
+  }
+
+   lifecycle {
+    create_before_destroy = true
+  }
+}
+
+/*
 resource "aws_launch_configuration" "agent_lc" {
   name_prefix   = "${var.application}-agent-"
   image_id      = data.aws_ami.amzn2_ami.id
@@ -269,6 +322,7 @@ resource "aws_launch_configuration" "agent_lc" {
     create_before_destroy = true
   }
 }
+*/
 
 resource "aws_security_group" "agent_sg" {
   name        = "${var.application}-agent-sg"
@@ -501,8 +555,15 @@ resource "aws_autoscaling_group" "master_asg" {
   health_check_grace_period = 900
   health_check_type         = "ELB"
 
-  launch_configuration = aws_launch_configuration.master_lc.name
-  name                 = aws_launch_configuration.master_lc.name
+  # launch_configuration = aws_launch_configuration.master_lc.name
+  # name                 = aws_launch_configuration.master_lc.name
+  
+  name                 = aws_launch_template.master_lt.name
+
+  launch_template {
+    id      = aws_launch_template.master_lt.id
+    version = "$Latest"
+  }
 
   vpc_zone_identifier = [
   data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
@@ -525,6 +586,51 @@ resource "aws_autoscaling_group" "master_asg" {
   }
 }
 
+resource "aws_launch_template" "master_lt" {
+  name_prefix   = "${var.application}-master-"
+  image_id      = data.aws_ami.amzn2_ami.id
+  instance_type = var.instance_type
+  user_data     = data.template_cloudinit_config.master_init.rendered
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.master_ip.name
+  }
+
+  network_interfaces {
+    security_groups = [aws_security_group.master_sg.id]
+  }
+
+  monitoring {
+    enabled = true
+  }
+
+  ebs_optimized = false
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = 25
+      volume_type           = "gp2"
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      var.tags,
+      tomap({
+        "Name" = "${var.application}-master"
+      })
+    )
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+/*
 resource "aws_launch_configuration" "master_lc" {
   name_prefix   = "${var.application}-master-"
   image_id      = data.aws_ami.amzn2_ami.id
@@ -550,6 +656,7 @@ resource "aws_launch_configuration" "master_lc" {
     create_before_destroy = true
   }
 }
+*/
 
 resource "aws_security_group" "master_sg" {
   name        = "${var.application}-master-sg"
