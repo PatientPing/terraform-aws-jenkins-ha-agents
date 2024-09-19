@@ -269,7 +269,7 @@ resource "aws_launch_template" "agent_lt" {
     enabled = true
   }
 
-  ebs_optimized = true
+  ebs_optimized = false
 
   block_device_mappings {
     device_name = "/dev/xvda"
