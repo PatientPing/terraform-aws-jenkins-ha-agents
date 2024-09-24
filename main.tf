@@ -445,8 +445,8 @@ resource "aws_cloudwatch_log_group" "agent_logs" {
 }
 
 data "template_cloudinit_config" "agent_init" {
-  gzip          = false
-  base64_encode = false
+  gzip          = true
+  base64_encode = true
 
   part {
     filename     = "agent.cfg"
@@ -746,8 +746,8 @@ resource "aws_cloudwatch_log_group" "master_logs" {
 }
 
 data "template_cloudinit_config" "master_init" {
-  gzip          = false
-  base64_encode = false
+  gzip          = true
+  base64_encode = true
 
   part {
     filename     = "master.cfg"
