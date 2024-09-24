@@ -49,8 +49,6 @@ module "jenkins_ha_agents" {
 
 ### Full Configuration with Custom Userdata and Plugins
 
-Note: It is better to use a template file, but the template data sources below illistrate the point.
-
 ```TERRAFORM
 module "jenkins_ha_agents" {
   source = "neiman-marcus/jenkins-ha-agents/aws"
@@ -68,10 +66,10 @@ module "jenkins_ha_agents" {
   bastion_sg_name = "bastion-sg"
   domain_name     = "foo.io."
 
-  custom_plugins              = "${data.template_file.custom_plugins.rendered}"
-  extra_agent_userdata        = "${data.template_file.extra_agent_userdata.rendered}"
+  custom_plugins              = templatefile("${path.module}/custom_plugins.tpl", {})
+  extra_agent_userdata        = templatefile("${path.module}/extra_agent_userdata.tpl", {})
   extra_agent_userdata_merge  = "list(append)+dict(recurse_array)+str()"
-  extra_master_userdata       = "${data.template_file.extra_master_userdata.rendered}"
+  extra_master_userdata       = templatefile("${path.module}/extra_master_userdata.tpl", {})
   extra_master_userdata_merge = "list(append)+dict(recurse_array)+str()"
 
   executors              = "4"
@@ -98,44 +96,6 @@ module "jenkins_ha_agents" {
   vpc_name      = "prod-vpc"
 }
 
-data "template_file" "custom_plugins" {
-  template = <<EOF
----
-#cloud-config
-
-write_files:
-  - path: /root/custom_plugins.txt
-    content: |
-      cloudbees-folder
-    permissions: "000400"
-    owner: root
-    group: root
-EOF
-}
-
-data "template_file" "extra_agent_userdata" {
-  vars {
-    foo = "bar"
-  }
-
-  template = <<EOF
----
-runcmd:
-  - echo 'foo = ${foo}'
-EOF
-}
-
-data "template_file" "extra_master_userdata" {
-  vars {
-    foo = "bar"
-  }
-  
-  template = <<EOF
----
-runcmd:
-  - echo 'foo = ${foo}'
-EOF
-}
 ```
 
 ## Examples

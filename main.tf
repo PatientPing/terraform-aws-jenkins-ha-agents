@@ -226,11 +226,17 @@ resource "aws_autoscaling_group" "agent_asg" {
   health_check_grace_period = 300
   health_check_type         = "EC2"
 
-  launch_configuration = aws_launch_configuration.agent_lc.name
-  name                 = aws_launch_configuration.agent_lc.name
+  name = aws_launch_template.agent_lt.name
+
+  launch_template {
+    id      = aws_launch_template.agent_lt.id
+    version = "$Latest"
+  }
 
   vpc_zone_identifier = [
-  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az2.id,
+  ]
 
   tag {
     key                 = "Name"
@@ -239,30 +245,49 @@ resource "aws_autoscaling_group" "agent_asg" {
   }
 
   tag {
-    key                 = "Launch Configuration"
-    value               = aws_launch_configuration.agent_lc.name
+    key                 = "Launch Template"
+    value               = aws_launch_template.agent_lt.name
     propagate_at_launch = true
   }
 }
 
-resource "aws_launch_configuration" "agent_lc" {
+resource "aws_launch_template" "agent_lt" {
   name_prefix   = "${var.application}-agent-"
   image_id      = data.aws_ami.amzn2_ami.id
   instance_type = var.instance_type
+  user_data     = data.template_cloudinit_config.agent_init.rendered
 
-  iam_instance_profile = aws_iam_instance_profile.agent_ip.name
-  security_groups = [
-  aws_security_group.agent_sg.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.agent_ip.name
+  }
 
-  user_data = data.template_cloudinit_config.agent_init.rendered
+  network_interfaces {
+    security_groups = [aws_security_group.agent_sg.id]
+  }
 
-  enable_monitoring = true
-  ebs_optimized     = false
+  monitoring {
+    enabled = true
+  }
 
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = var.agent_volume_size
-    delete_on_termination = true
+  ebs_optimized = false
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = var.agent_volume_size
+      volume_type           = "gp2"
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      var.tags,
+      tomap({
+        "Name" = "${var.application}-agent"
+      })
+    )
   }
 
   lifecycle {
@@ -420,18 +445,28 @@ resource "aws_cloudwatch_log_group" "agent_logs" {
 }
 
 data "template_cloudinit_config" "agent_init" {
-  gzip          = false
-  base64_encode = false
+  gzip          = true
+  base64_encode = true
 
   part {
     filename     = "agent.cfg"
     content_type = "text/cloud-config"
-    content      = data.template_file.agent_write_files.rendered
+    content      = templatefile("${path.module}/init/agent-write-files.cfg", {
+      agent_logs    = aws_cloudwatch_log_group.agent_logs.name
+      aws_region    = var.region
+      executors     = var.executors
+      swarm_version = var.swarm_version
+    })
   }
 
   part {
     content_type = "text/cloud-config"
-    content      = data.template_file.agent_runcmd.rendered
+    content      = templatefile("${path.module}/init/agent-runcmd.cfg", {
+      api_ssm_parameter = "${var.ssm_parameter}${var.api_ssm_parameter}"
+      aws_region        = var.region
+      master_asg        = aws_autoscaling_group.master_asg.name
+      swarm_version     = var.swarm_version
+    })
   }
 
   part {
@@ -442,35 +477,9 @@ data "template_cloudinit_config" "agent_init" {
 
   part {
     content_type = "text/cloud-config"
-    content      = data.template_file.agent_end.rendered
+    content      = templatefile("${path.module}/init/agent-end.cfg", {})
     merge_type   = "list(append)+dict(recurse_array)+str()"
   }
-}
-
-data "template_file" "agent_write_files" {
-  template = file("${path.module}/init/agent-write-files.cfg")
-
-  vars = {
-    agent_logs    = aws_cloudwatch_log_group.agent_logs.name
-    aws_region    = var.region
-    executors     = var.executors
-    swarm_version = var.swarm_version
-  }
-}
-
-data "template_file" "agent_runcmd" {
-  template = file("${path.module}/init/agent-runcmd.cfg")
-
-  vars = {
-    api_ssm_parameter = "${var.ssm_parameter}${var.api_ssm_parameter}"
-    aws_region        = var.region
-    master_asg        = aws_autoscaling_group.master_asg.name
-    swarm_version     = var.swarm_version
-  }
-}
-
-data "template_file" "agent_end" {
-  template = file("${path.module}/init/agent-end.cfg")
 }
 
 resource "aws_autoscaling_policy" "agent_scale_up_policy" {
@@ -500,12 +509,18 @@ resource "aws_autoscaling_group" "master_asg" {
 
   health_check_grace_period = 900
   health_check_type         = "ELB"
+  
+  name = aws_launch_template.master_lt.name
 
-  launch_configuration = aws_launch_configuration.master_lc.name
-  name                 = aws_launch_configuration.master_lc.name
+  launch_template {
+    id      = aws_launch_template.master_lt.id
+    version = "$Latest"
+  }
 
   vpc_zone_identifier = [
-  data.aws_subnet.private_subnet_az1.id, data.aws_subnet.private_subnet_az2.id]
+    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az2.id,
+  ]
 
   target_group_arns = [
     aws_lb_target_group.master_tg.arn,
@@ -519,31 +534,49 @@ resource "aws_autoscaling_group" "master_asg" {
   }
 
   tag {
-    key                 = "Launch Configuration"
-    value               = aws_launch_configuration.master_lc.name
+    key                 = "Launch Template"
+    value               = aws_launch_template.master_lt.name
     propagate_at_launch = true
   }
 }
 
-resource "aws_launch_configuration" "master_lc" {
+resource "aws_launch_template" "master_lt" {
   name_prefix   = "${var.application}-master-"
   image_id      = data.aws_ami.amzn2_ami.id
   instance_type = var.instance_type
+  user_data     = data.template_cloudinit_config.master_init.rendered
 
-  iam_instance_profile = aws_iam_instance_profile.master_ip.name
-  security_groups = [
-    aws_security_group.master_sg.id
-  ]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.master_ip.name
+  }
 
-  user_data = data.template_cloudinit_config.master_init.rendered
+  network_interfaces {
+    security_groups = [aws_security_group.master_sg.id]
+  }
 
-  enable_monitoring = true
-  ebs_optimized     = false
+  monitoring {
+    enabled = true
+  }
 
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 25
-    delete_on_termination = true
+  ebs_optimized = false
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      volume_size           = 25
+      volume_type           = "gp2"
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      var.tags,
+      tomap({
+        "Name" = "${var.application}-master"
+      })
+    )
   }
 
   lifecycle {
@@ -713,13 +746,21 @@ resource "aws_cloudwatch_log_group" "master_logs" {
 }
 
 data "template_cloudinit_config" "master_init" {
-  gzip          = false
-  base64_encode = false
+  gzip          = true
+  base64_encode = true
 
   part {
     filename     = "master.cfg"
     content_type = "text/cloud-config"
-    content      = data.template_file.master_write_files.rendered
+    content      = templatefile("${path.module}/init/master-write-files.cfg", {
+      admin_password           = random_string.admin_password.result
+      api_ssm_parameter        = "${var.ssm_parameter}${var.api_ssm_parameter}"
+      application              = var.application
+      auto_update_plugins_cron = var.auto_update_plugins_cron
+      aws_region               = var.region
+      executors_min            = var.agent_min * var.executors
+      master_logs              = aws_cloudwatch_log_group.master_logs.name
+    })
   }
 
   part {
@@ -730,7 +771,12 @@ data "template_cloudinit_config" "master_init" {
 
   part {
     content_type = "text/cloud-config"
-    content      = data.template_file.master_runcmd.rendered
+    content      = templatefile("${path.module}/init/master-runcmd.cfg", {
+      admin_password    = random_string.admin_password.result
+      aws_region        = var.region
+      jenkins_version   = random_string.admin_password.keepers.jenkins_version
+      master_storage    = aws_efs_file_system.master_efs.id
+    })
   }
 
   part {
@@ -741,38 +787,9 @@ data "template_cloudinit_config" "master_init" {
 
   part {
     content_type = "text/cloud-config"
-    content      = data.template_file.master_end.rendered
+    content      = templatefile("${path.module}/init/master-end.cfg", {})
     merge_type   = "list(append)+dict(recurse_array)+str()"
   }
-}
-
-data "template_file" "master_write_files" {
-  template = file("${path.module}/init/master-write-files.cfg")
-
-  vars = {
-    admin_password           = random_string.admin_password.result
-    api_ssm_parameter        = "${var.ssm_parameter}${var.api_ssm_parameter}"
-    application              = var.application
-    auto_update_plugins_cron = var.auto_update_plugins_cron
-    aws_region               = var.region
-    executors_min            = var.agent_min * var.executors
-    master_logs              = aws_cloudwatch_log_group.master_logs.name
-  }
-}
-
-data "template_file" "master_runcmd" {
-  template = file("${path.module}/init/master-runcmd.cfg")
-
-  vars = {
-    admin_password  = random_string.admin_password.result
-    aws_region      = var.region
-    jenkins_version = random_string.admin_password.keepers.jenkins_version
-    master_storage  = aws_efs_file_system.master_efs.id
-  }
-}
-
-data "template_file" "master_end" {
-  template = file("${path.module}/init/master-end.cfg")
 }
 
 resource "aws_efs_file_system" "master_efs" {
