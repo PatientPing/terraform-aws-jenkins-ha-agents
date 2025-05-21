@@ -234,7 +234,7 @@ resource "aws_autoscaling_group" "agent_asg" {
   }
 
   vpc_zone_identifier = [
-    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az1.id,
     data.aws_subnet.private_subnet_az2.id,
   ]
 
@@ -254,7 +254,7 @@ resource "aws_autoscaling_group" "agent_asg" {
 resource "aws_launch_template" "agent_lt" {
   name_prefix   = "${var.application}-agent-"
   image_id      = data.aws_ami.amzn2_ami.id
-  instance_type = var.instance_type
+  instance_type = var.instance_type_agent
   user_data     = data.template_cloudinit_config.agent_init.rendered
 
   iam_instance_profile {
@@ -451,7 +451,7 @@ data "template_cloudinit_config" "agent_init" {
   part {
     filename     = "agent.cfg"
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/init/agent-write-files.cfg", {
+    content = templatefile("${path.module}/init/agent-write-files.cfg", {
       agent_logs    = aws_cloudwatch_log_group.agent_logs.name
       aws_region    = var.region
       executors     = var.executors
@@ -461,7 +461,7 @@ data "template_cloudinit_config" "agent_init" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/init/agent-runcmd.cfg", {
+    content = templatefile("${path.module}/init/agent-runcmd.cfg", {
       api_ssm_parameter = "${var.ssm_parameter}${var.api_ssm_parameter}"
       aws_region        = var.region
       master_asg        = aws_autoscaling_group.master_asg.name
@@ -509,7 +509,7 @@ resource "aws_autoscaling_group" "master_asg" {
 
   health_check_grace_period = 900
   health_check_type         = "ELB"
-  
+
   name = aws_launch_template.master_lt.name
 
   launch_template {
@@ -518,7 +518,7 @@ resource "aws_autoscaling_group" "master_asg" {
   }
 
   vpc_zone_identifier = [
-    data.aws_subnet.private_subnet_az1.id, 
+    data.aws_subnet.private_subnet_az1.id,
     data.aws_subnet.private_subnet_az2.id,
   ]
 
@@ -543,7 +543,7 @@ resource "aws_autoscaling_group" "master_asg" {
 resource "aws_launch_template" "master_lt" {
   name_prefix   = "${var.application}-master-"
   image_id      = data.aws_ami.amzn2_ami.id
-  instance_type = var.instance_type
+  instance_type = var.instance_type_main
   user_data     = data.template_cloudinit_config.master_init.rendered
 
   iam_instance_profile {
@@ -752,7 +752,7 @@ data "template_cloudinit_config" "master_init" {
   part {
     filename     = "master.cfg"
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/init/master-write-files.cfg", {
+    content = templatefile("${path.module}/init/master-write-files.cfg", {
       admin_password           = random_string.admin_password.result
       api_ssm_parameter        = "${var.ssm_parameter}${var.api_ssm_parameter}"
       application              = var.application
@@ -771,11 +771,11 @@ data "template_cloudinit_config" "master_init" {
 
   part {
     content_type = "text/cloud-config"
-    content      = templatefile("${path.module}/init/master-runcmd.cfg", {
-      admin_password    = random_string.admin_password.result
-      aws_region        = var.region
-      jenkins_version   = random_string.admin_password.keepers.jenkins_version
-      master_storage    = aws_efs_file_system.master_efs.id
+    content = templatefile("${path.module}/init/master-runcmd.cfg", {
+      admin_password  = random_string.admin_password.result
+      aws_region      = var.region
+      jenkins_version = random_string.admin_password.keepers.jenkins_version
+      master_storage  = aws_efs_file_system.master_efs.id
     })
   }
 
