@@ -18,13 +18,23 @@ data "aws_security_group" "bastion_sg" {
   }
 }
 
-data "aws_ami" "amzn2_ami" {
+data "aws_ami" "amzn2_ami_agent" {
   most_recent = true
-  owners      = [var.ami_owner]
+  owners      = [var.ami_owner_agent]
 
   filter {
     name   = "name"
-    values = [var.ami_name]
+    values = [var.ami_name_agent]
+  }
+}
+
+data "aws_ami" "amzn2_ami_master" {
+  most_recent = true
+  owners      = [var.ami_owner_master]
+
+  filter {
+    name   = "name"
+    values = [var.ami_name_master]
   }
 }
 
@@ -204,7 +214,7 @@ resource "aws_autoscaling_group" "agent_asg" {
 
 resource "aws_launch_configuration" "agent_lc" {
   name_prefix   = "${var.application}-agent-"
-  image_id      = data.aws_ami.amzn2_ami.id
+  image_id      = data.aws_ami.amzn2_ami_agent.id
   instance_type = var.instance_type
 
   spot_price = var.spot_price[var.instance_type]
@@ -467,7 +477,7 @@ resource "aws_autoscaling_group" "master_asg" {
 
 resource "aws_launch_configuration" "master_lc" {
   name_prefix   = "${var.application}-master-"
-  image_id      = data.aws_ami.amzn2_ami.id
+  image_id      = data.aws_ami.amzn2_ami_master.id
   instance_type = var.instance_type
 
   iam_instance_profile = aws_iam_instance_profile.master_ip.name

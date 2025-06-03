@@ -12,12 +12,22 @@ variable "agent_min" {
   default     = 2
 }
 
-variable "ami_name" {
+variable "ami_name_agent" {
   description = "The name of the amzn2 ami. Used for searching for AMI id."
   default     = "amzn2-ami-hvm-2.0.*-x86_64-gp2"
 }
 
-variable "ami_owner" {
+variable "ami_name_master" {
+  description = "The name of the amzn2 ami. Used for searching for AMI id."
+  default     = "amzn2-ami-hvm-2.0.*-x86_64-gp2"
+}
+
+variable "ami_owner_agent" {
+  description = "The owner of the amzn2 ami."
+  default     = "amazon"
+}
+
+variable "ami_owner_master" {
   description = "The owner of the amzn2 ami."
   default     = "amazon"
 }
