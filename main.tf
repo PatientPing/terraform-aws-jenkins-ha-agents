@@ -10,15 +10,23 @@ data "aws_security_group" "bastion_sg" {
   }
 }
 
-data "aws_ami" "amzn2_ami" {
+data "aws_ami" "amzn_ami_main" {
   most_recent = true
-  owners = [
-  var.ami_owner]
+  owners      = [var.ami_owner_main]
 
   filter {
-    name = "name"
-    values = [
-    var.ami_name]
+    name   = "name"
+    values = [var.ami_name_main]
+  }
+}
+
+data "aws_ami" "amzn_ami_agent" {
+  most_recent = true
+  owners      = [var.ami_owner_agent]
+
+  filter {
+    name   = "name"
+    values = [var.ami_name_agent]
   }
 }
 
@@ -253,7 +261,7 @@ resource "aws_autoscaling_group" "agent_asg" {
 
 resource "aws_launch_template" "agent_lt" {
   name_prefix   = "${var.application}-agent-"
-  image_id      = data.aws_ami.amzn2_ami.id
+  image_id      = data.aws_ami.amzn_ami_agent.id
   instance_type = var.instance_type_agent
   user_data     = data.template_cloudinit_config.agent_init.rendered
 
@@ -542,7 +550,7 @@ resource "aws_autoscaling_group" "master_asg" {
 
 resource "aws_launch_template" "master_lt" {
   name_prefix   = "${var.application}-master-"
-  image_id      = data.aws_ami.amzn2_ami.id
+  image_id      = data.aws_ami.amzn_ami_main.id
   instance_type = var.instance_type_main
   user_data     = data.template_cloudinit_config.master_init.rendered
 
